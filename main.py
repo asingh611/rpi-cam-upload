@@ -5,6 +5,7 @@ import os
 from picamera2 import Picamera2
 import time
 import uuid
+import io
 
 # Switch between choosing to upload file from test directory or from camera data
 USE_CAMERA_DATA = False
