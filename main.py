@@ -8,7 +8,7 @@ import uuid
 import io
 
 # Switch between choosing to upload file from test directory or from camera data
-USE_CAMERA_DATA = False
+USE_CAMERA_DATA = True
 PHOTO_DELAY = 60
 
 if __name__ == '__main__':
@@ -38,7 +38,7 @@ if __name__ == '__main__':
                 data = io.BytesIO()
                 picam2.capture_file(data, format='jpeg')
                 # Write to blob storage
-                blob_client = container_client.upload_blob(name=blob_filename, data=data)
+                blob_client = container_client.upload_blob(name=blob_filename, data=data.getvalue())
                 # Stop camera                
                 picam2.stop()
         if not USE_CAMERA_DATA:
