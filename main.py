@@ -9,6 +9,7 @@ import io
 
 # Switch between choosing to upload file from test directory or from camera data
 USE_CAMERA_DATA = True
+WRITE_TO_AZURE = False
 PHOTO_DELAY = 60
 
 if __name__ == '__main__':
@@ -34,11 +35,14 @@ if __name__ == '__main__':
                 picam2 = Picamera2()
                 picam2.start()
                 time.sleep(1)
-                # Capture image to memory
-                data = io.BytesIO()
-                picam2.capture_file(data, format='jpeg')
-                # Write to blob storage
-                blob_client = container_client.upload_blob(name=blob_filename, data=data.getvalue())
+                if WRITE_TO_AZURE:
+                        # Capture image to memory
+                        data = io.BytesIO()
+                        picam2.capture_file(data, format='jpeg')
+                        # Write to blob storage
+                        blob_client = container_client.upload_blob(name=blob_filename, data=data.getvalue())
+                else:
+                        picam2.capture_file(os.path.join('local_output', blob_filename+'.jpg'))
                 # Stop camera                
                 picam2.stop()
         if not USE_CAMERA_DATA:
