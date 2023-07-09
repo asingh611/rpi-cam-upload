@@ -161,3 +161,4 @@ cython_debug/
 
 # Additional files and directories
 local_output/
+sample_input_videos/*
