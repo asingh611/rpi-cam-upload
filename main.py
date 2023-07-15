@@ -13,14 +13,14 @@ import numpy as np
 USE_CAMERA_DATA = True
 WRITE_TO_AZURE = False
 PHOTO_DELAY = 60
-n = 20  # Number of frames to take median of
+n = 10  # Number of frames to take median of
 previous_frames = None  # Holds numpy array of previous frames
 difference = None
 frames_captured = 0  # Keeps track of the total number of frames
 difference_threshold = 15  # Threshold value for abs difference of current frame and median image
-motion_threshold = 0.05  # Percent of pixels to determine that motion occurred
+motion_threshold = 0.075  # Percent of pixels to determine that motion occurred
 main_resolution = (1920, 1080)  # Resolution for image captured
-lores_resolution = (640, 480)  # Resolution for preview window
+lores_resolution = (160, 120)  # Resolution for preview window
 
 if __name__ == '__main__':
     try:
@@ -43,13 +43,14 @@ if __name__ == '__main__':
         if USE_CAMERA_DATA:
             # Start camera
             picam2 = Picamera2()
-            camera_config = picam2.create_still_configuration(main={"size": main_resolution},
+            camera_config = picam2.create_still_configuration(main={"size": lores_resolution},
                                                               lores={"size": lores_resolution}, display="lores")
             picam2.configure(camera_config)
             picam2.start()
             time.sleep(1)
             while True:
                 frame = picam2.capture_array()
+                # print("Image Captured")
                 gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
                 frames_captured += 1
                 if previous_frames is None:
@@ -72,10 +73,14 @@ if __name__ == '__main__':
                 # Update the oldest frame in previous_frames with the latest image
                 index_to_update = frames_captured % n
                 previous_frames[:, :, index_to_update] = gray
+                # cv.imshow('threshold', difference)
+                print(np.count_nonzero(difference == 0))
 
                 # Take action if certain percentage of pixels are 0
                 if np.count_nonzero(difference == 0) > motion_threshold * np.size(difference):
                     print("Motion Detected")
+                    print(np.count_nonzero(difference == 0))
+                    
                     if WRITE_TO_AZURE:
                         # Capture image to memory
                         data = io.BytesIO()
@@ -84,6 +89,9 @@ if __name__ == '__main__':
                         blob_client = container_client.upload_blob(name=blob_filename, data=data.getvalue())
                     else:
                         picam2.capture_file(os.path.join('local_output', blob_filename + '.jpg'))
+                        difference_normalize = cv.normalize(difference, dst=None, alpha=0, beta=255, norm_type=cv.NORM_MINMAX)
+                        cv.imwrite(os.path.join('local_output', "difference", blob_filename + '.png'), difference_normalize)
+                    blob_filename = str(uuid.uuid4())
             # Stop camera
             picam2.stop()
         if not USE_CAMERA_DATA:
