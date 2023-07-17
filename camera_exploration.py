@@ -7,7 +7,7 @@ import cv2 as cv
 import numpy as np
 
 USE_CAMERA = False
-n = 20  # Number of frames to take median of
+n = 10  # Number of frames to take median of
 previous_frames = None  # Holds numpy array of previous frames
 difference = None
 frames_captured = 0  # Keeps track of the total number of frames
@@ -21,7 +21,7 @@ else:
 while True:
     # Capture frame-by-frame
     ret, frame = cap.read()
-
+    print("Image Captured")
     if not ret:
         print("Can't receive frame")
         break
@@ -77,6 +77,8 @@ while True:
     #
     # cv.imshow('Frame', gray)
     # cv.imshow('FG Mask', fgMask)
+    difference_normalize = cv.normalize(difference, dst=None, alpha=0, beta=255, norm_type=cv.NORM_MINMAX)
+    cv.imwrite("difference.png", difference_normalize)
 
     if cv.waitKey(1) & 0xFF == ord('q'):
         break
