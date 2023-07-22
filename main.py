@@ -12,7 +12,6 @@ import numpy as np
 # Switch between choosing to upload file from test directory or from camera data
 USE_CAMERA_DATA = True
 WRITE_TO_AZURE = False
-PHOTO_DELAY = 60
 n = 10  # Number of frames to take median of
 previous_frames = None  # Holds numpy array of previous frames
 difference = None
@@ -22,28 +21,40 @@ motion_threshold = 0.05  # Percent of pixels to determine that motion occurred
 main_resolution = (800, 600)  # Resolution for image captured
 lores_resolution = (160, 120)  # Resolution for preview window
 
+# Range of pixels in the image to focus on
+x_1 = 50
+x_2 = 110
+y_1 = 15
+y_2 = 150
+
+
+def initialize_azure_connection():
+    # Load environment variables
+    load_dotenv(".env")
+    account_url = os.environ.get("AZURE_STORAGE_ACCOUNT_URL")
+    default_credential = DefaultAzureCredential()
+
+    # Create the BlobServiceClient object
+    blob_service_client = BlobServiceClient(account_url, credential=default_credential)
+
+    # Get the container
+    container_name = os.environ.get("AZURE_STORAGE_CONTAINER_NAME")
+    return blob_service_client.get_container_client(container=container_name)
+
+
 if __name__ == '__main__':
     try:
-        # Load environment variables
-        load_dotenv(".env")
-        account_url = os.environ.get("AZURE_STORAGE_ACCOUNT_URL")
-        default_credential = DefaultAzureCredential()
+        # Initialize connection for blob storage
+        if WRITE_TO_AZURE:
+            container_client = initialize_azure_connection()
 
-        # Create the BlobServiceClient object
-        blob_service_client = BlobServiceClient(account_url, credential=default_credential)
-
-        # Get the container
-        container_name = os.environ.get("AZURE_STORAGE_CONTAINER_NAME")
-        container_client = blob_service_client.get_container_client(container=container_name)
-        print("Ready to write to blob")
-
-        # Write blob to container
         # Generate unique filename
         blob_filename = str(uuid.uuid4())
+
         if USE_CAMERA_DATA:
             # Start camera
             picam2 = Picamera2()
-            camera_config = picam2.create_still_configuration(main={"size": lores_resolution},
+            camera_config = picam2.create_still_configuration(main={"size": main_resolution},
                                                               lores={"size": lores_resolution}, display="lores")
             picam2.configure(camera_config)
             picam2.start()
@@ -52,7 +63,7 @@ if __name__ == '__main__':
                 # frame = picam2.capture_array()
                 (main, lores), metadata = picam2.capture_arrays(["main", "lores"])
                 # print("Image Captured")
-                gray = cv.cvtColor(lores, cv.COLOR_BGR2GRAY)
+                gray = cv.cvtColor(lores, cv.COLOR_BGR2GRAY)[x_1:x_2, y_1:y_2]
                 frames_captured += 1
                 if previous_frames is None:
                     previous_frames = np.zeros((gray.shape[0], gray.shape[1], n))
@@ -60,7 +71,7 @@ if __name__ == '__main__':
                     for i in range(1, n):
                         # frame = picam2.capture_array()
                         (main, lores), metadata = picam2.capture_arrays(["main", "lores"])
-                        gray = cv.cvtColor(lores, cv.COLOR_BGR2GRAY)
+                        gray = cv.cvtColor(lores, cv.COLOR_BGR2GRAY)[x_1:x_2, y_1:y_2]
                         previous_frames[:, :, i] = gray
                         frames_captured += 1
                 # Take the median
@@ -92,6 +103,7 @@ if __name__ == '__main__':
                         picam2.capture_file(data, format='jpeg')
                         # Write to blob storage
                         blob_client = container_client.upload_blob(name=blob_filename, data=data.getvalue())
+                        print("Blob write completed")
                     else:
                         # picam2.capture_file(os.path.join('local_output', blob_filename + '.jpg'))
                         cv.imwrite(os.path.join('local_output', "difference", blob_filename + '.png'), main)
@@ -105,7 +117,6 @@ if __name__ == '__main__':
             # Writes image from sample_data directory to blob storage
             with open(file=os.path.join('sample_data', 'image.jpg'), mode="rb") as data:
                 blob_client = container_client.upload_blob(name=blob_filename, data=data)
-        print("Blob write completed")
 
     except Exception as e:
         print(e)
