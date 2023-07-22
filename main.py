@@ -17,8 +17,8 @@ previous_frames = None  # Holds numpy array of previous frames
 difference = None
 frames_captured = 0  # Keeps track of the total number of frames
 difference_threshold = 15  # Threshold value for abs difference of current frame and median image
-motion_threshold = 0.05  # Percent of pixels to determine that motion occurred
-main_resolution = (800, 600)  # Resolution for image captured
+motion_threshold = 0.02  # Percent of pixels to determine that motion occurred
+main_resolution = (640, 480)  # Resolution for image captured
 lores_resolution = (160, 120)  # Resolution for preview window
 
 # Range of pixels in the image to focus on
@@ -55,7 +55,7 @@ if __name__ == '__main__':
             # Start camera
             picam2 = Picamera2()
             camera_config = picam2.create_still_configuration(main={"size": main_resolution},
-                                                              lores={"size": lores_resolution}, display="lores")
+                                                              lores={"size": lores_resolution, "format": "YUV420" }, display="lores")
             picam2.configure(camera_config)
             picam2.start()
             time.sleep(1)
@@ -63,7 +63,7 @@ if __name__ == '__main__':
                 # frame = picam2.capture_array()
                 (main, lores), metadata = picam2.capture_arrays(["main", "lores"])
                 # print("Image Captured")
-                gray = cv.cvtColor(lores, cv.COLOR_BGR2GRAY)[x_1:x_2, y_1:y_2]
+                gray = cv.cvtColor(lores, cv.COLOR_YUV420p2GRAY)[x_1:x_2, y_1:y_2]
                 frames_captured += 1
                 if previous_frames is None:
                     previous_frames = np.zeros((gray.shape[0], gray.shape[1], n))
@@ -71,7 +71,7 @@ if __name__ == '__main__':
                     for i in range(1, n):
                         # frame = picam2.capture_array()
                         (main, lores), metadata = picam2.capture_arrays(["main", "lores"])
-                        gray = cv.cvtColor(lores, cv.COLOR_BGR2GRAY)[x_1:x_2, y_1:y_2]
+                        gray = cv.cvtColor(lores, cv.COLOR_YUV420p2GRAY)[x_1:x_2, y_1:y_2]
                         previous_frames[:, :, i] = gray
                         frames_captured += 1
                 # Take the median
@@ -87,7 +87,7 @@ if __name__ == '__main__':
                 index_to_update = frames_captured % n
                 previous_frames[:, :, index_to_update] = gray
                 # cv.imshow('threshold', difference)
-                print(np.count_nonzero(difference == 0))
+                # print(np.count_nonzero(difference == 0))
 
                 kernel = np.ones((3, 3), np.uint8)
                 difference_dilation = cv.dilate(difference, kernel, iterations=1)
@@ -105,10 +105,11 @@ if __name__ == '__main__':
                         blob_client = container_client.upload_blob(name=blob_filename, data=data.getvalue())
                         print("Blob write completed")
                     else:
-                        # picam2.capture_file(os.path.join('local_output', blob_filename + '.jpg'))
-                        cv.imwrite(os.path.join('local_output', "difference", blob_filename + '.png'), main)
+                        picam2.capture_file(os.path.join('local_output', blob_filename + '.jpg'))
+                        # cv.imwrite(os.path.join('local_output', blob_filename + '.png'), main)
                         difference_normalize = cv.normalize(difference, dst=None, alpha=0, beta=255, norm_type=cv.NORM_MINMAX)
                         cv.imwrite(os.path.join('local_output', "difference", blob_filename + '.png'), difference_normalize)
+                        cv.imwrite(os.path.join('local_output', "lores", blob_filename + '.png'), lores)
                     blob_filename = str(uuid.uuid4())
             # Stop camera
             picam2.stop()
