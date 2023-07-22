@@ -6,28 +6,34 @@ from picamera2 import Picamera2
 import time
 import uuid
 import io
-import cv2 as cv
+import cv2
 import numpy as np
+import atexit
+import datetime
 
-# Switch between choosing to upload file from test directory or from camera data
-USE_CAMERA_DATA = True
-WRITE_TO_AZURE = False
-n = 10  # Number of frames to take median of
-previous_frames = None  # Holds numpy array of previous frames
-difference = None
-frames_captured = 0  # Keeps track of the total number of frames
-difference_threshold = 15  # Threshold value for abs difference of current frame and median image
-motion_threshold = 0.02  # Percent of pixels to determine that motion occurred
-main_resolution = (640, 480)  # Resolution for image captured
-lores_resolution = (160, 120)  # Resolution for preview window
+USE_CAMERA_DATA = True  # Switch between choosing to upload file from test directory or from camera data
+WRITE_TO_AZURE = False  # Whether to write image locally or to Azure
+LOCAL_OUTPUT_FOLDER = 'local_output'  # Local folder for where to output images
+LOCAL_OUTPUT_DEBUG_IMAGES = True  # Output image representations of arrays used in determining motion
+N = 10  # Number of frames to take median of
+DIFFERENCE_THRESHOLD = 15  # Threshold value for abs difference of current frame and median image
+MOTION_THRESHOLD = 0.02  # Percent of pixels to determine that motion occurred
+MAIN_RESOLUTION = (640, 480)  # Resolution for image captured
+LORES_RESOLUTION = (160, 120)  # Resolution for preview window
+START_HOUR = 8  # Hour of the day to start camera
+END_HOUR = 18  # Hour of the day to stop camera
+TIME_BETWEEN_MOTION = 30  # Number of seconds to wait before trying to detect motion again
+CAPTURE_NEW_IMAGE_ON_WRITE = True  # When performing a write operation, capture a new image
 
-# Range of pixels in the image to focus on
+# Range of pixels in the image to focus on for motion detection (area of the image where the bird seeds are)
+# These values are constant as long as the camera isn't moved
 x_1 = 50
 x_2 = 110
 y_1 = 15
 y_2 = 150
 
 
+# Connect to Azure using environment variables loaded the .env file
 def initialize_azure_connection():
     # Load environment variables
     load_dotenv(".env")
@@ -42,6 +48,93 @@ def initialize_azure_connection():
     return blob_service_client.get_container_client(container=container_name)
 
 
+# Start the Raspberry Pi camera
+def start_camera(main_resolution, lores_resolution):
+    # Start camera
+    picam2_start = Picamera2()
+    camera_config = picam2_start.create_still_configuration(main={"size": main_resolution},
+                                                      lores={"size": lores_resolution, "format": "YUV420"},
+                                                      display="lores")
+    picam2_start.configure(camera_config)
+    picam2_start.start()
+    time.sleep(1)
+    return picam2_start
+
+
+# Capture current frame and return results from both resolution streams and a cropped grayscale version of lores
+def capture_current_image(picam2_obj):
+    (img_main, img_lores), img_metadata = picam2_obj.capture_arrays(["main", "lores"])
+    img_gray = cv2.cvtColor(lores, cv2.COLOR_YUV420p2GRAY)[x_1:x_2, y_1:y_2]
+    return img_main, img_lores, img_gray
+
+
+# Generate array of previous images
+# This set of images will be used to generate an image to compare to the current frame
+def create_history_array(picam2_obj, n):
+    history_array = None
+    for i in range(0, n):
+        main_img, lores_img, gray_img = capture_current_image(picam2_obj)
+        if history_array is None:
+            history_array = np.zeros((gray_img.shape[0], gray_img.shape[1], n))
+
+        history_array[:, :, i] = gray_img
+    return main_img, lores_img, gray_img, history_array
+
+
+# Based on the previous frames and the current frame, determine if motion was detected
+def detect_motion(history_array, current_image):
+    # Take the median
+    median_image = np.median(history_array, axis=2)
+
+    # Take the absolute difference between the median and current frame
+    difference_img = np.abs(median_image - current_image)
+
+    # Only show pixels where the difference between the median image and current frame is higher than the threshold
+    difference_img[difference_img <= DIFFERENCE_THRESHOLD] = 1
+    difference_img[difference_img > DIFFERENCE_THRESHOLD] = 0  # motion
+
+    # Morphological operation to clean up image
+    kernel = np.ones((3, 3), np.uint8)
+    difference_dilation = cv2.dilate(difference_img, kernel, iterations=1)
+
+    # Take action if certain percentage of pixels are 0 (higher than the threshold)
+    if np.count_nonzero(difference_dilation == 0) > MOTION_THRESHOLD * np.size(difference_dilation):
+        print("Motion Detected")
+        print(np.count_nonzero(difference_dilation == 0))
+        return True, difference_img
+
+
+# Method to handle writing to Azure
+def write_image_to_azure(azure_container_client, picam2_obj, filename):
+    # Capture image to memory
+    data = io.BytesIO()
+    picam2_obj.capture_file(data, format='jpeg')
+    # Write to blob storage
+    blob_client = azure_container_client.upload_blob(name=filename + '.jpg', data=data.getvalue())
+    print("Blob write completed")
+
+
+# Method for handling writing image locally
+def write_image_locally(picam2_obj, filename, difference_img, main_img, lores_img):
+    if CAPTURE_NEW_IMAGE_ON_WRITE:
+        picam2_obj.capture_file(os.path.join(LOCAL_OUTPUT_FOLDER, filename + '.jpg'))
+    else:
+        cv2.imwrite(os.path.join(LOCAL_OUTPUT_FOLDER, filename + '.jpg'), main_img)
+
+    if LOCAL_OUTPUT_DEBUG_IMAGES:
+        difference_normalize = cv2.normalize(difference_img, dst=None,
+                                             alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)
+        cv2.imwrite(os.path.join(LOCAL_OUTPUT_FOLDER, "difference", filename + '.png'),
+                    difference_normalize)
+        cv2.imwrite(os.path.join(LOCAL_OUTPUT_FOLDER, "lores", filename + '.png'), lores_img)
+    print("Image saved locally")
+
+
+# Stop camera when code stopped
+def cleanup_on_exit(picam2_obj):
+    picam2_obj.stop()
+
+
 if __name__ == '__main__':
     try:
         # Initialize connection for blob storage
@@ -52,67 +145,40 @@ if __name__ == '__main__':
         blob_filename = str(uuid.uuid4())
 
         if USE_CAMERA_DATA:
-            # Start camera
-            picam2 = Picamera2()
-            camera_config = picam2.create_still_configuration(main={"size": main_resolution},
-                                                              lores={"size": lores_resolution, "format": "YUV420" }, display="lores")
-            picam2.configure(camera_config)
-            picam2.start()
-            time.sleep(1)
+            picam2 = None
+            atexit.register(cleanup_on_exit, picam2)
+            previous_frames = None  # Holds numpy array of previous frames
+            frames_captured = 0  # Keeps track of the total number of frame
+
             while True:
-                # frame = picam2.capture_array()
-                (main, lores), metadata = picam2.capture_arrays(["main", "lores"])
-                # print("Image Captured")
-                gray = cv.cvtColor(lores, cv.COLOR_YUV420p2GRAY)[x_1:x_2, y_1:y_2]
-                frames_captured += 1
+                # Start the camera for the first time
+                if picam2 is None:
+                    picam2 = start_camera(MAIN_RESOLUTION, LORES_RESOLUTION)
+
+                # Initialize the array of N previous frames if needed
                 if previous_frames is None:
-                    previous_frames = np.zeros((gray.shape[0], gray.shape[1], n))
-                    previous_frames[:, :, 0] = gray
-                    for i in range(1, n):
-                        # frame = picam2.capture_array()
-                        (main, lores), metadata = picam2.capture_arrays(["main", "lores"])
-                        gray = cv.cvtColor(lores, cv.COLOR_YUV420p2GRAY)[x_1:x_2, y_1:y_2]
-                        previous_frames[:, :, i] = gray
-                        frames_captured += 1
-                # Take the median
-                median_image = np.median(previous_frames, axis=2)
+                    main, lores, gray, previous_frames = create_history_array(picam2, N)
+                    frames_captured += N
 
-                # Take the absolute difference between the median and current frame
-                difference = np.abs(median_image - gray)
+                # Otherwise, capture current image
+                else:
+                    main, lores, gray = capture_current_image(picam2)
+                    frames_captured += 1
 
-                difference[difference <= difference_threshold] = 1
-                difference[difference > difference_threshold] = 0  # motion
-
-                # Update the oldest frame in previous_frames with the latest image
-                index_to_update = frames_captured % n
-                previous_frames[:, :, index_to_update] = gray
-                # cv.imshow('threshold', difference)
-                # print(np.count_nonzero(difference == 0))
-
-                kernel = np.ones((3, 3), np.uint8)
-                difference_dilation = cv.dilate(difference, kernel, iterations=1)
-
-                # Take action if certain percentage of pixels are 0
-                if np.count_nonzero(difference_dilation == 0) > motion_threshold * np.size(difference_dilation):
-                    print("Motion Detected")
-                    print(np.count_nonzero(difference_dilation == 0))
-                    
+                motion_detected, difference = detect_motion(previous_frames, gray)
+                if motion_detected:
                     if WRITE_TO_AZURE:
-                        # Capture image to memory
-                        data = io.BytesIO()
-                        picam2.capture_file(data, format='jpeg')
-                        # Write to blob storage
-                        blob_client = container_client.upload_blob(name=blob_filename, data=data.getvalue())
-                        print("Blob write completed")
+                        write_image_to_azure(container_client, picam2, blob_filename)
                     else:
-                        picam2.capture_file(os.path.join('local_output', blob_filename + '.jpg'))
-                        # cv.imwrite(os.path.join('local_output', blob_filename + '.png'), main)
-                        difference_normalize = cv.normalize(difference, dst=None, alpha=0, beta=255, norm_type=cv.NORM_MINMAX)
-                        cv.imwrite(os.path.join('local_output', "difference", blob_filename + '.png'), difference_normalize)
-                        cv.imwrite(os.path.join('local_output', "lores", blob_filename + '.png'), lores)
-                    blob_filename = str(uuid.uuid4())
-            # Stop camera
-            picam2.stop()
+                        write_image_locally(picam2, blob_filename, difference, main, lores)
+
+                # Finally, update the oldest frame in previous_frames with the latest image
+                index_to_update = frames_captured % N
+                previous_frames[:, :, index_to_update] = gray
+
+                # Generate new file name
+                blob_filename = str(uuid.uuid4())
+
         if not USE_CAMERA_DATA:
             # For testing when not using the Raspberry Pi
             # Writes image from sample_data directory to blob storage
