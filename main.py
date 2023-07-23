@@ -10,6 +10,7 @@ import cv2
 import numpy as np
 import atexit
 import datetime
+import camera_logging
 
 USE_CAMERA_DATA = True  # Switch between choosing to upload file from test directory or from camera data
 WRITE_TO_AZURE = False  # Whether to write image locally or to Azure
@@ -17,7 +18,7 @@ LOCAL_OUTPUT_FOLDER = 'local_output'  # Local folder for where to output images
 LOCAL_OUTPUT_DEBUG_IMAGES = True  # Output image representations of arrays used in determining motion
 N = 10  # Number of frames to take median of
 DIFFERENCE_THRESHOLD = 15  # Threshold value for abs difference of current frame and median image
-MOTION_THRESHOLD = 0.02  # Percent of pixels to determine that motion occurred
+MOTION_THRESHOLD = 0.10  # Percent of pixels to determine that motion occurred
 MAIN_RESOLUTION = (640, 480)  # Resolution for image captured
 LORES_RESOLUTION = (160, 120)  # Resolution for preview window
 START_HOUR = 8  # Hour of the day to start camera
@@ -27,10 +28,7 @@ CAPTURE_NEW_IMAGE_ON_WRITE = True  # When performing a write operation, capture 
 
 # Range of pixels in the image to focus on for motion detection (area of the image where the bird seeds are)
 # These values are constant as long as the camera isn't moved
-x_1 = 50
-x_2 = 110
-y_1 = 15
-y_2 = 150
+x_1, x_2, y_1, y_2 = (50, 110, 15, 150)
 
 
 # Connect to Azure using environment variables loaded the .env file
@@ -45,7 +43,9 @@ def initialize_azure_connection():
 
     # Get the container
     container_name = os.environ.get("AZURE_STORAGE_CONTAINER_NAME")
-    return blob_service_client.get_container_client(container=container_name)
+    blob_container_client =  blob_service_client.get_container_client(container=container_name)
+    camera_logging.output_log_to_console(camera_logging.EVENT_BLOBSERVICE_STARTED)
+    return blob_container_client
 
 
 # Start the Raspberry Pi camera
@@ -58,13 +58,15 @@ def start_camera(main_resolution, lores_resolution):
     picam2_start.configure(camera_config)
     picam2_start.start()
     time.sleep(1)
+    camera_logging.output_log_to_console(camera_logging.EVENT_CAMERA_STARTED, ["Resolution: " + main_resolution])
     return picam2_start
 
 
 # Capture current frame and return results from both resolution streams and a cropped grayscale version of lores
 def capture_current_image(picam2_obj):
     (img_main, img_lores), img_metadata = picam2_obj.capture_arrays(["main", "lores"])
-    img_gray = cv2.cvtColor(lores, cv2.COLOR_YUV420p2GRAY)[x_1:x_2, y_1:y_2]
+    img_gray = cv2.cvtColor(img_lores, cv2.COLOR_YUV420p2GRAY)[x_1:x_2, y_1:y_2]
+    # camera_logging.output_log_to_console(camera_logging.EVENT_IMAGE_CAPTURED)
     return img_main, img_lores, img_gray
 
 
@@ -76,7 +78,6 @@ def create_history_array(picam2_obj, n):
         main_img, lores_img, gray_img = capture_current_image(picam2_obj)
         if history_array is None:
             history_array = np.zeros((gray_img.shape[0], gray_img.shape[1], n))
-
         history_array[:, :, i] = gray_img
     return main_img, lores_img, gray_img, history_array
 
@@ -98,9 +99,11 @@ def detect_motion(history_array, current_image):
     difference_dilation = cv2.dilate(difference_img, kernel, iterations=1)
 
     # Take action if certain percentage of pixels are 0 (higher than the threshold)
-    if np.count_nonzero(difference_dilation == 0) > MOTION_THRESHOLD * np.size(difference_dilation):
-        print("Motion Detected")
-        print(np.count_nonzero(difference_dilation == 0))
+    count_nonzero = np.count_nonzero(difference_dilation == 0)
+    if count_nonzero > MOTION_THRESHOLD * np.size(difference_dilation):
+        camera_logging.output_log_to_console(camera_logging.EVENT_MOTION_DETECTED,
+                                             ["Number of changed pixels: " + count_nonzero,
+                                              " Current motion threshold: " + str(MOTION_THRESHOLD)])
         return True, difference_img
 
 
@@ -111,7 +114,7 @@ def write_image_to_azure(azure_container_client, picam2_obj, filename):
     picam2_obj.capture_file(data, format='jpeg')
     # Write to blob storage
     blob_client = azure_container_client.upload_blob(name=filename + '.jpg', data=data.getvalue())
-    print("Blob write completed")
+    camera_logging.output_log_to_console(camera_logging.EVENT_IMAGE_WRITTEN_CLOUD, ["Filename: " + filename])
 
 
 # Method for handling writing image locally
@@ -127,7 +130,7 @@ def write_image_locally(picam2_obj, filename, difference_img, main_img, lores_im
         cv2.imwrite(os.path.join(LOCAL_OUTPUT_FOLDER, "difference", filename + '.png'),
                     difference_normalize)
         cv2.imwrite(os.path.join(LOCAL_OUTPUT_FOLDER, "lores", filename + '.png'), lores_img)
-    print("Image saved locally")
+    camera_logging.output_log_to_console(camera_logging.EVENT_IMAGE_WRITTEN_LOCAL, ["Filename: " + filename])
 
 
 # Stop camera when code stopped
@@ -146,7 +149,7 @@ if __name__ == '__main__':
 
         if USE_CAMERA_DATA:
             picam2 = None
-            atexit.register(cleanup_on_exit, picam2)
+            # atexit.register(cleanup_on_exit, picam2)
             previous_frames = None  # Holds numpy array of previous frames
             frames_captured = 0  # Keeps track of the total number of frame
 
