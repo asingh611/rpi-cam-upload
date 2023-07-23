@@ -105,7 +105,7 @@ def detect_motion(history_array, current_image):
                                              ["Number of changed pixels: " + count_nonzero,
                                               " Current motion threshold: " + str(MOTION_THRESHOLD)])
         return True, difference_img
-
+    return False, difference_img
 
 # Method to handle writing to Azure
 def write_image_to_azure(azure_container_client, picam2_obj, filename):
