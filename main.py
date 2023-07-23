@@ -9,7 +9,7 @@ import io
 import cv2
 import numpy as np
 import atexit
-import datetime
+from datetime import datetime, timedelta
 import camera_logging
 
 USE_CAMERA_DATA = True  # Switch between choosing to upload file from test directory or from camera data
@@ -152,6 +152,7 @@ if __name__ == '__main__':
             # atexit.register(cleanup_on_exit, picam2)
             previous_frames = None  # Holds numpy array of previous frames
             frames_captured = 0  # Keeps track of the total number of frame
+            last_motion_time = datetime.now() + timedelta(seconds=-TIME_BETWEEN_MOTION) # Tracks when motion was last detected
 
             while True:
                 # Start the camera for the first time
@@ -170,10 +171,16 @@ if __name__ == '__main__':
 
                 motion_detected, difference = detect_motion(previous_frames, gray)
                 if motion_detected:
-                    if WRITE_TO_AZURE:
-                        write_image_to_azure(container_client, picam2, blob_filename)
-                    else:
-                        write_image_locally(picam2, blob_filename, difference, main, lores)
+                    # Calculate if it has been enough time since the last time motion was detected
+                    # This is to prevent multiple images of the same bird being captured
+                    current_motion_time = datetime.now()
+                    motion_time_difference = last_motion_time - current_motion_time
+                    if motion_time_difference.seconds > TIME_BETWEEN_MOTION:
+                        last_motion_time = current_motion_time
+                        if WRITE_TO_AZURE:
+                            write_image_to_azure(container_client, picam2, blob_filename)
+                        else:
+                            write_image_locally(picam2, blob_filename, difference, main, lores)
 
                 # Finally, update the oldest frame in previous_frames with the latest image
                 index_to_update = frames_captured % N
