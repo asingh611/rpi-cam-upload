@@ -181,6 +181,8 @@ if __name__ == '__main__':
                             write_image_to_azure(container_client, picam2, blob_filename)
                         else:
                             write_image_locally(picam2, blob_filename, difference, main, lores)
+                    else:
+                        camera_logging.output_log_to_console(camera_logging.EVENT_IMAGE_WRITE_SKIP)
 
                 # Finally, update the oldest frame in previous_frames with the latest image
                 index_to_update = frames_captured % N

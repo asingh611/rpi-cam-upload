@@ -7,6 +7,7 @@ EVENT_MOTION_DETECTED = "Motion Detected"
 EVENT_BLOBSERVICE_STARTED = "Connected to Azure Blob Service"
 EVENT_IMAGE_WRITTEN_LOCAL = "Image Saved Locally"
 EVENT_IMAGE_WRITTEN_CLOUD = "Image Saved To Cloud"
+EVENT_IMAGE_WRITE_SKIP = "Skipping image write"
 
 
 def output_log_to_console(event, additional_data=None):
