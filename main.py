@@ -12,7 +12,6 @@ import atexit
 from datetime import datetime, timedelta
 import camera_logging
 
-USE_CAMERA_DATA = True  # Switch between choosing to upload file from test directory or from camera data
 WRITE_TO_AZURE = False  # Whether to write image locally or to Azure
 WRITE_IMAGE_LOCALLY = True
 LOCAL_OUTPUT_FOLDER = 'local_output'  # Local folder for where to output images
@@ -156,57 +155,50 @@ if __name__ == '__main__':
         # Generate unique filename
         blob_filename = str(uuid.uuid4())
 
-        if USE_CAMERA_DATA:
-            picam2 = None
-            previous_frames = None  # Holds numpy array of previous frames
-            frames_captured = 0  # Keeps track of the total number of frame
-            last_motion_time = datetime.now() + timedelta(seconds=-TIME_BETWEEN_MOTION) # Tracks when motion was last detected
+        picam2 = None
+        previous_frames = None  # Holds numpy array of previous frames
+        frames_captured = 0  # Keeps track of the total number of frame
+        last_motion_time = datetime.now() + timedelta(seconds=-TIME_BETWEEN_MOTION) # Tracks when motion was last detected
 
-            while True:
-                # Start the camera for the first time
-                if picam2 is None:
-                    picam2 = start_camera(MAIN_RESOLUTION, LORES_RESOLUTION)
+        while True:
+            # Start the camera for the first time
+            if picam2 is None:
+                picam2 = start_camera(MAIN_RESOLUTION, LORES_RESOLUTION)
 
-                # Initialize the array of N previous frames if needed
-                if previous_frames is None:
-                    main, lores, gray, previous_frames = create_history_array(picam2, N)
-                    frames_captured += N
+            # Initialize the array of N previous frames if needed
+            if previous_frames is None:
+                main, lores, gray, previous_frames = create_history_array(picam2, N)
+                frames_captured += N
 
-                # Otherwise, capture current image
+            # Otherwise, capture current image
+            else:
+                main, lores, gray = capture_current_image(picam2)
+                frames_captured += 1
+
+            # Determine if motion is detected
+            motion_detected, difference = detect_motion(previous_frames, gray)
+            if motion_detected:
+                # Calculate if it has been enough time since the last time motion was detected
+                # This is to prevent multiple images of the same bird being captured
+                current_motion_time = datetime.now()
+                motion_time_difference = current_motion_time - last_motion_time
+                if motion_time_difference.seconds > TIME_BETWEEN_MOTION:
+                    last_motion_time = current_motion_time
+                    # Write image file
+                    if WRITE_TO_AZURE:
+                        write_image_to_azure(container_client, picam2, blob_filename)
+                    if WRITE_IMAGE_LOCALLY:
+                        write_image_locally(picam2, blob_filename, difference, main, lores)
+
+                    # Generate new file name
+                    blob_filename = str(uuid.uuid4())
+
                 else:
-                    main, lores, gray = capture_current_image(picam2)
-                    frames_captured += 1
+                    camera_logging.output_log_to_console(camera_logging.EVENT_IMAGE_WRITE_SKIP)
 
-                # Determine if motion is detected
-                motion_detected, difference = detect_motion(previous_frames, gray)
-                if motion_detected:
-                    # Calculate if it has been enough time since the last time motion was detected
-                    # This is to prevent multiple images of the same bird being captured
-                    current_motion_time = datetime.now()
-                    motion_time_difference = current_motion_time - last_motion_time
-                    if motion_time_difference.seconds > TIME_BETWEEN_MOTION:
-                        last_motion_time = current_motion_time
-                        # Write image file
-                        if WRITE_TO_AZURE:
-                            write_image_to_azure(container_client, picam2, blob_filename)
-                        if WRITE_IMAGE_LOCALLY:
-                            write_image_locally(picam2, blob_filename, difference, main, lores)
-
-                        # Generate new file name
-                        blob_filename = str(uuid.uuid4())
-
-                    else:
-                        camera_logging.output_log_to_console(camera_logging.EVENT_IMAGE_WRITE_SKIP)
-
-                # Finally, update the oldest frame in previous_frames with the latest image
-                index_to_update = frames_captured % N
-                previous_frames[:, :, index_to_update] = gray
-
-        if not USE_CAMERA_DATA:
-            # For testing when not using the Raspberry Pi
-            # Writes image from sample_data directory to blob storage
-            with open(file=os.path.join('sample_data', 'image.jpg'), mode="rb") as data:
-                blob_client = container_client.upload_blob(name=blob_filename, data=data)
+            # Finally, update the oldest frame in previous_frames with the latest image
+            index_to_update = frames_captured % N
+            previous_frames[:, :, index_to_update] = gray
 
     except Exception as e:
         print(e)
