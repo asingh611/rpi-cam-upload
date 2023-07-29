@@ -58,7 +58,7 @@ def start_camera(main_resolution, lores_resolution):
     picam2_start.configure(camera_config)
     picam2_start.start()
     time.sleep(1)
-    camera_logging.output_log_to_console(camera_logging.EVENT_CAMERA_STARTED, ["Resolution: " + main_resolution])
+    camera_logging.output_log_to_console(camera_logging.EVENT_CAMERA_STARTED, ["Resolution: " + str(main_resolution)])
     return picam2_start
 
 
@@ -102,7 +102,7 @@ def detect_motion(history_array, current_image):
     count_nonzero = np.count_nonzero(difference_dilation == 0)
     if count_nonzero > MOTION_THRESHOLD * np.size(difference_dilation):
         camera_logging.output_log_to_console(camera_logging.EVENT_MOTION_DETECTED,
-                                             ["Number of changed pixels: " + count_nonzero,
+                                             ["Number of changed pixels: " + str(count_nonzero),
                                               " Current motion threshold: " + str(MOTION_THRESHOLD)])
         return True, difference_img
     return False, difference_img
@@ -169,27 +169,30 @@ if __name__ == '__main__':
                     main, lores, gray = capture_current_image(picam2)
                     frames_captured += 1
 
+                # Determine if motion is detected
                 motion_detected, difference = detect_motion(previous_frames, gray)
                 if motion_detected:
                     # Calculate if it has been enough time since the last time motion was detected
                     # This is to prevent multiple images of the same bird being captured
                     current_motion_time = datetime.now()
-                    motion_time_difference = last_motion_time - current_motion_time
+                    motion_time_difference = current_motion_time - last_motion_time
                     if motion_time_difference.seconds > TIME_BETWEEN_MOTION:
                         last_motion_time = current_motion_time
+                        # Write image file
                         if WRITE_TO_AZURE:
                             write_image_to_azure(container_client, picam2, blob_filename)
                         else:
                             write_image_locally(picam2, blob_filename, difference, main, lores)
+
+                        # Generate new file name
+                        blob_filename = str(uuid.uuid4())
+
                     else:
                         camera_logging.output_log_to_console(camera_logging.EVENT_IMAGE_WRITE_SKIP)
 
                 # Finally, update the oldest frame in previous_frames with the latest image
                 index_to_update = frames_captured % N
                 previous_frames[:, :, index_to_update] = gray
-
-                # Generate new file name
-                blob_filename = str(uuid.uuid4())
 
         if not USE_CAMERA_DATA:
             # For testing when not using the Raspberry Pi

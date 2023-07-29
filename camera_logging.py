@@ -9,14 +9,28 @@ EVENT_IMAGE_WRITTEN_LOCAL = "Image Saved Locally"
 EVENT_IMAGE_WRITTEN_CLOUD = "Image Saved To Cloud"
 EVENT_IMAGE_WRITE_SKIP = "Skipping image write"
 
+LOG_FILE_NAME = "camera_events.log"
 
-def output_log_to_console(event, additional_data=None):
+
+# Method to generate the output for an event that would be written locally
+def generate_local_log_output(event, additional_data=None):
     additional_data_string = ""
     if additional_data is not None:
         for data in additional_data:
-            additional_data_string += data + " "
+            additional_data_string += data + " | "
 
     current_datetime = datetime.now()
 
-    print("{} {} {}".format(current_datetime, event, additional_data_string))
+    return "{} | {} | {}".format(current_datetime, event, additional_data_string)
+
+
+# Output log event to the console
+def output_log_to_console(event, additional_data=None):
+    print(generate_local_log_output(event, additional_data))
+
+
+# Output log event to a log file
+def output_log_to_file(event, additional_data=None):
+    with open(LOG_FILE_NAME, 'a') as f:
+        f.write(generate_local_log_output(event, additional_data))
 
