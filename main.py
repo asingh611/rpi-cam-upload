@@ -12,19 +12,38 @@ import atexit
 from datetime import datetime, timedelta
 import camera_logging
 
-WRITE_TO_AZURE = False  # Whether to write image locally or to Azure
-WRITE_IMAGE_LOCALLY = True
-LOCAL_OUTPUT_FOLDER = 'local_output'  # Local folder for where to output images
-LOCAL_OUTPUT_DEBUG_IMAGES = True  # Output image representations of arrays used in determining motion
-N = 10  # Number of frames to take median of
-DIFFERENCE_THRESHOLD = 15  # Threshold value for abs difference of current frame and median image
-MOTION_THRESHOLD = 0.10  # Percent of pixels to determine that motion occurred
-MAIN_RESOLUTION = (640, 480)  # Resolution for image captured
-LORES_RESOLUTION = (160, 120)  # Resolution for preview window
+###################
+# Camera Options
+###################
 START_HOUR = 8  # Hour of the day to start camera
 END_HOUR = 18  # Hour of the day to stop camera
-TIME_BETWEEN_MOTION = 30  # Number of seconds to wait before trying to detect motion again
+
+###################
+# Write Options
+###################
+WRITE_TO_AZURE = False  # Whether to write image to Azure
+WRITE_IMAGE_LOCALLY = True  # Whether to write image locally
+LOCAL_OUTPUT_DEBUG_IMAGES = True  # Output image representations of arrays used in determining motion
 CAPTURE_NEW_IMAGE_ON_WRITE = True  # When performing a write operation, capture a new image
+
+###################
+# Motion Options
+###################
+N = 10  # Number of frames to take median of
+DIFFERENCE_THRESHOLD = 15  # Threshold pixel value for abs difference of current frame and median image
+MOTION_THRESHOLD = 0.10  # Percent of pixels to determine that motion occurred
+TIME_BETWEEN_MOTION = 30  # Number of seconds to wait before trying to detect motion again
+
+###################
+# Logging Options
+###################
+LOG_CONSOLE, LOG_FILE, LOG_AZURE = (True, True, False)
+
+
+MAIN_RESOLUTION = (640, 480)  # Resolution for image captured
+LORES_RESOLUTION = (160, 120)  # Resolution for preview window
+
+LOCAL_OUTPUT_FOLDER = 'local_output'  # Local folder for where to output images
 
 # Range of pixels in the image to focus on for motion detection (area of the image where the bird seeds are)
 # These values are constant as long as the camera isn't moved
