@@ -7,11 +7,11 @@ import numpy as np
 import os
 import time
 
-image_path_bird = os.path.join('local_output', 'frame_from_video.PNG')
-image_path_no_bird = os.path.join('local_output', 'aeb42440-857e-4504-9ad0-811b17a69f01.jpg')
+image_path_bird = os.path.join('../local_output', 'frame_from_video.PNG')
+image_path_no_bird = os.path.join('../local_output', 'aeb42440-857e-4504-9ad0-811b17a69f01.jpg')
 
-config_path = os.path.join('opencv_yolo', 'yolov3.cfg')
-weight_path = os.path.join('opencv_yolo', 'yolov3.weights')
+config_path = os.path.join('../opencv_yolo', 'yolov3.cfg')
+weight_path = os.path.join('../opencv_yolo', 'yolov3.weights')
 
 image_bird = cv.imread(image_path_bird)
 image_bird_cropped = image_bird[image_bird.shape[0]-416:image_bird.shape[0], image_bird.shape[1]-416:image_bird.shape[1], :]

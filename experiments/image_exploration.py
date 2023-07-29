@@ -2,18 +2,18 @@ import cv2 as cv
 import numpy as np
 import os
 
-image_path_bird = os.path.join('local_output', 'e52135f1-09f0-498e-8aa5-3dd2aeb1e43c.jpg')
-image_path_no_bird = os.path.join('local_output', 'aeb42440-857e-4504-9ad0-811b17a69f01.jpg')
-image_path_no_bird_2 = os.path.join('local_output', 'd8c8ff32-cad7-403e-ae58-9e2f714b8ccb.jpg')
+image_path_bird = os.path.join('../local_output', 'e52135f1-09f0-498e-8aa5-3dd2aeb1e43c.jpg')
+image_path_no_bird = os.path.join('../local_output', 'aeb42440-857e-4504-9ad0-811b17a69f01.jpg')
+image_path_no_bird_2 = os.path.join('../local_output', 'd8c8ff32-cad7-403e-ae58-9e2f714b8ccb.jpg')
 
 image_bird = cv.imread(image_path_bird, cv.IMREAD_GRAYSCALE)[50:110, 15:150]
 image_no_bird = cv.imread(image_path_no_bird, cv.IMREAD_GRAYSCALE)[50:110, 15:150]
 image_no_bird_2 = cv.imread(image_path_no_bird_2, cv.IMREAD_GRAYSCALE)[50:110, 15:150]
 
 # difference_path_bird = os.path.join('local_output', '845e3689-2a94-45eb-8a3f-6f923bdceb4a.png')
-difference_path_bird = os.path.join('local_output', 'e52135f1-09f0-498e-8aa5-3dd2aeb1e43c.png')
+difference_path_bird = os.path.join('../local_output', 'e52135f1-09f0-498e-8aa5-3dd2aeb1e43c.png')
 
-difference_path_no_bird = os.path.join('local_output', '6c812ee2-b0a0-4e89-86ff-df330d56014d.png')
+difference_path_no_bird = os.path.join('../local_output', '6c812ee2-b0a0-4e89-86ff-df330d56014d.png')
 difference_bird = cv.imread(difference_path_bird, cv.IMREAD_GRAYSCALE)[50:110, 15:150]
 difference_no_bird = cv.imread(difference_path_no_bird, cv.IMREAD_GRAYSCALE)[50:110, 15:150]
 

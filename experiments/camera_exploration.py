@@ -17,7 +17,7 @@ motion_threshold = 0.05  # Percent of pixels to determine that motion occurred
 if USE_CAMERA:
     cap = cv.VideoCapture(0)
 else:
-    cap = cv.VideoCapture('sample_input_videos/fanta_sample1.mp4')
+    cap = cv.VideoCapture('../sample_input_videos/fanta_sample1.mp4')
 while True:
     # Capture frame-by-frame
     ret, frame = cap.read()

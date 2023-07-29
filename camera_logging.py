@@ -9,7 +9,8 @@ EVENT_IMAGE_WRITTEN_LOCAL = "Image Saved Locally"
 EVENT_IMAGE_WRITTEN_CLOUD = "Image Saved To Cloud"
 EVENT_IMAGE_WRITE_SKIP = "Skipping image write"
 
-LOG_FILE_NAME = "camera_events.log"
+LOG_FILE_NAME = "camera_events.log"  # Local file name for log file
+LOG_CONSOLE, LOG_FILE, LOG_AZURE = (True, True, False)  # Where to write logs to
 
 
 # Method to generate the output for an event that would be written locally
@@ -22,6 +23,14 @@ def generate_local_log_output(event, additional_data=None):
     current_datetime = datetime.now()
 
     return "{} | {} | {}".format(current_datetime, event, additional_data_string)
+
+
+# Wrapper method for outputting to log
+def output_log(event, additional_data=None):
+    if LOG_CONSOLE:
+        output_log_to_console(event, additional_data)
+    if LOG_FILE:
+        output_log_to_file(event, additional_data)
 
 
 # Output log event to the console
