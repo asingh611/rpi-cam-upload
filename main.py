@@ -14,6 +14,7 @@ import camera_logging
 
 USE_CAMERA_DATA = True  # Switch between choosing to upload file from test directory or from camera data
 WRITE_TO_AZURE = False  # Whether to write image locally or to Azure
+WRITE_IMAGE_LOCALLY = True
 LOCAL_OUTPUT_FOLDER = 'local_output'  # Local folder for where to output images
 LOCAL_OUTPUT_DEBUG_IMAGES = True  # Output image representations of arrays used in determining motion
 N = 10  # Number of frames to take median of
@@ -43,7 +44,7 @@ def initialize_azure_connection():
 
     # Get the container
     container_name = os.environ.get("AZURE_STORAGE_CONTAINER_NAME")
-    blob_container_client =  blob_service_client.get_container_client(container=container_name)
+    blob_container_client = blob_service_client.get_container_client(container=container_name)
     camera_logging.output_log_to_console(camera_logging.EVENT_BLOBSERVICE_STARTED)
     return blob_container_client
 
@@ -107,6 +108,7 @@ def detect_motion(history_array, current_image):
         return True, difference_img
     return False, difference_img
 
+
 # Method to handle writing to Azure
 def write_image_to_azure(azure_container_client, picam2_obj, filename):
     # Capture image to memory
@@ -133,9 +135,12 @@ def write_image_locally(picam2_obj, filename, difference_img, main_img, lores_im
     camera_logging.output_log_to_console(camera_logging.EVENT_IMAGE_WRITTEN_LOCAL, ["Filename: " + filename])
 
 
-# Stop camera when code stopped
-def cleanup_on_exit(picam2_obj):
-    picam2_obj.stop()
+# Method for creating folder directories for local image write if they don't
+def create_local_write_folder():
+    folder_date = datetime.now()
+    folder_name = folder_date.strftime('%Y%m%d')
+    os.makedirs(os.path.join(LOCAL_OUTPUT_FOLDER, folder_name, "difference"), True)
+    os.makedirs(os.path.join(LOCAL_OUTPUT_FOLDER, folder_name, "lores"), True)
 
 
 if __name__ == '__main__':
@@ -144,12 +149,15 @@ if __name__ == '__main__':
         if WRITE_TO_AZURE:
             container_client = initialize_azure_connection()
 
+        # Ensure folders for writing images locally are available
+        if WRITE_IMAGE_LOCALLY:
+            create_local_write_folder()
+
         # Generate unique filename
         blob_filename = str(uuid.uuid4())
 
         if USE_CAMERA_DATA:
             picam2 = None
-            # atexit.register(cleanup_on_exit, picam2)
             previous_frames = None  # Holds numpy array of previous frames
             frames_captured = 0  # Keeps track of the total number of frame
             last_motion_time = datetime.now() + timedelta(seconds=-TIME_BETWEEN_MOTION) # Tracks when motion was last detected
@@ -181,7 +189,7 @@ if __name__ == '__main__':
                         # Write image file
                         if WRITE_TO_AZURE:
                             write_image_to_azure(container_client, picam2, blob_filename)
-                        else:
+                        if WRITE_IMAGE_LOCALLY:
                             write_image_locally(picam2, blob_filename, difference, main, lores)
 
                         # Generate new file name
