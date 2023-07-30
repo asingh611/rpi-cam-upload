@@ -47,7 +47,7 @@ def detect_motion(history_array, current_image, difference_threshold, motion_thr
 
 # Checks if there has been enough time since the last time motion was detected
 # Prevents too many images from being saved
-def enough_time_since_motion(last_motion_time, time_threshold, current_motion_time):
+def enough_time_since_motion(last_motion_time, current_motion_time, time_threshold):
     motion_time_difference = current_motion_time - last_motion_time
     if motion_time_difference.seconds > time_threshold:
         return True

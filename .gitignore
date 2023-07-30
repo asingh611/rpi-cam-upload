@@ -163,3 +163,4 @@ cython_debug/
 local_output/
 sample_input_videos/*
 opencv_yolo/
+camera_events.log

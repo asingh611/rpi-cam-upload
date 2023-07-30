@@ -41,5 +41,5 @@ def output_log_to_console(event, additional_data=None):
 # Output log event to a log file
 def output_log_to_file(event, additional_data=None):
     with open(LOG_FILE_NAME, 'a') as f:
-        f.write(generate_local_log_output(event, additional_data))
+        f.write(generate_local_log_output(event, additional_data) + "\n")
 
