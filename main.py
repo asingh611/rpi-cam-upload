@@ -66,7 +66,7 @@ if __name__ == '__main__':
             if motion_detected:
                 # Calculate if it has been enough time since the last time motion was detected
                 # This is to prevent multiple images of the same bird being captured
-                if camera_motion.enough_time_since_motion(last_motion_time, current_motion_time, MOTION_THRESHOLD):
+                if camera_motion.enough_time_since_motion(last_motion_time, current_motion_time, TIME_BETWEEN_MOTION):
                     last_motion_time = current_motion_time
                     # Write image file
                     if WRITE_TO_AZURE:

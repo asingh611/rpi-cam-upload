@@ -56,9 +56,12 @@ def write_image_locally(picam2_obj, filename, difference_img, main_img, lores_im
 
 # Method for creating folder directories for local image write if they don't
 def create_local_write_folder():
+    date_folder_path = os.path.join(LOCAL_OUTPUT_FOLDER, LOCAL_OUTPUT_SUBFOLDER)
     difference_path = os.path.join(LOCAL_OUTPUT_FOLDER, LOCAL_OUTPUT_SUBFOLDER, "difference")
     lores_path = os.path.join(LOCAL_OUTPUT_FOLDER, LOCAL_OUTPUT_SUBFOLDER, "lores")
+    if not os.path.exists(date_folder_path):
+        os.mkdir(date_folder_path)
     if not os.path.exists(difference_path):
-        os.makedirs(difference_path, True)
+        os.mkdir(difference_path)
     if not os.path.exists(lores_path):
-        os.makedirs(lores_path, True)
+        os.mkdir(lores_path)
