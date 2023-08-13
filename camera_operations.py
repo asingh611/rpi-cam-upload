@@ -9,9 +9,13 @@ from camera_constants import *
 def start_camera():
     # Start camera
     picam2_start = Picamera2()
-    camera_config = picam2_start.create_still_configuration(main={"size": MAIN_RESOLUTION},
-                                                      lores={"size": LORES_RESOLUTION, "format": "YUV420"},
-                                                      display="lores")
+    # Default to single stream still image configuration if none defined
+    if CAMERA_MODE == "Multi-Still":
+        camera_config = picam2_start.create_still_configuration(main={"size": MAIN_RESOLUTION},
+                                                          lores={"size": LORES_RESOLUTION, "format": "YUV420"},
+                                                          display="lores")
+    else:
+        camera_config = picam2_start.create_still_configuration(main={"size": MAIN_RESOLUTION})
     picam2_start.configure(camera_config)
     picam2_start.start()
     time.sleep(1)
@@ -19,9 +23,20 @@ def start_camera():
     return picam2_start
 
 
-# Capture current frame and return results from both resolution streams and a cropped grayscale version of lores
+# Capture current frame and return results from main resolution stream and a cropped grayscale version
 def capture_current_image(picam2_obj):
+    img_main = picam2_obj.capture_array()
+    img_gray = cv2.cvtColor(img_main, cv2.COLOR_BGR2GRAY)
+    img_gray_resized = cv2.resize(img_main, LORES_RESOLUTION)[FOCUS_REGION_ROW_START:FOCUS_REGION_ROW_END,
+               FOCUS_REGION_COL_START:FOCUS_REGION_COL_END]
+    # camera_logging.output_log(camera_logging.EVENT_IMAGE_CAPTURED)
+    return img_main, img_gray_resized, img_gray_resized
+
+
+# Capture current frame and return results from both resolution streams and a cropped grayscale version of lores
+def capture_current_image_multistream(picam2_obj):
     (img_main, img_lores), img_metadata = picam2_obj.capture_arrays(["main", "lores"])
-    img_gray = cv2.cvtColor(img_lores, cv2.COLOR_YUV420p2GRAY)[x_1:x_2, y_1:y_2]
+    img_gray = cv2.cvtColor(img_lores, cv2.COLOR_YUV420p2GRAY)[FOCUS_REGION_ROW_START:FOCUS_REGION_ROW_END,
+               FOCUS_REGION_COL_START:FOCUS_REGION_COL_END]
     # camera_logging.output_log(camera_logging.EVENT_IMAGE_CAPTURED)
     return img_main, img_lores, img_gray

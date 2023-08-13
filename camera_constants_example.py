@@ -5,9 +5,12 @@ from datetime import datetime
 ###################
 START_HOUR = 8  # Hour of the day to start camera
 END_HOUR = 18  # Hour of the day to stop camera
+CAMERA_MODE = "Single-Still"
 MAIN_RESOLUTION = (800, 600)  # Resolution for image captured
 LORES_RESOLUTION = (160, 120)  # Resolution for preview window
-x_1, x_2, y_1, y_2 = (50, 110, 15, 150)  # Range of pixels in the image to focus on for motion detection
+# Range of pixels in the image to focus on for motion detection (crops original image)
+FOCUS_REGION_ROW_START, FOCUS_REGION_ROW_END = (int(0.4*LORES_RESOLUTION[1]), LORES_RESOLUTION[1])
+FOCUS_REGION_COL_START, FOCUS_REGION_COL_END = (0, LORES_RESOLUTION[0])
 
 ###################
 # Write Options
