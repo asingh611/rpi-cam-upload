@@ -4,11 +4,8 @@ from azure.storage.blob import BlobServiceClient
 import os
 import io
 import cv2
-from datetime import datetime
 import camera_logging
-
-LOCAL_OUTPUT_FOLDER = 'local_output'  # Local folder for where to output images
-LOCAL_OUTPUT_SUBFOLDER = datetime.now().strftime('%Y%m%d')  # e.g. 20230729
+from camera_constants import *
 
 
 # Connect to Azure using environment variables loaded the .env file

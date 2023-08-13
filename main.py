@@ -4,29 +4,7 @@ import camera_logging
 import camera_operations
 import camera_motion
 import image_write
-
-###################
-# Camera Options
-###################
-START_HOUR = 8  # Hour of the day to start camera
-END_HOUR = 18  # Hour of the day to stop camera
-
-###################
-# Write Options
-###################
-WRITE_TO_AZURE = False  # Whether to write image to Azure
-WRITE_IMAGE_LOCALLY = True  # Whether to write image locally
-LOCAL_OUTPUT_DEBUG_IMAGES = True  # Output image representations of arrays used in determining motion
-CAPTURE_NEW_IMAGE_ON_WRITE = True  # When performing a write operation, capture a new image
-
-###################
-# Motion Options
-###################
-N = 10  # Number of frames to take median of
-DIFFERENCE_THRESHOLD = 15  # Threshold pixel value for abs difference of current frame and median image
-MOTION_THRESHOLD = 0.10  # Percent of pixels to determine that motion occurred
-TIME_BETWEEN_MOTION = 30  # Number of seconds to wait before trying to detect motion again
-
+from camera_constants import *
 
 if __name__ == '__main__':
     try:
@@ -62,7 +40,8 @@ if __name__ == '__main__':
 
             # Determine if motion is detected
             motion_detected, difference, current_motion_time = camera_motion.detect_motion(previous_frames, gray,
-                                                                      DIFFERENCE_THRESHOLD, MOTION_THRESHOLD)
+                                                                                           DIFFERENCE_THRESHOLD,
+                                                                                           MOTION_THRESHOLD)
             if motion_detected:
                 # Calculate if it has been enough time since the last time motion was detected
                 # This is to prevent multiple images of the same bird being captured

@@ -61,7 +61,7 @@ def run_object_detection(image_base_path, should_detect):
         outs = net.forward(outNames)
         end_time = time.time()
 
-        # print('{} seconds'.format(round((end_time - start_time))))
+        print('Model run in {} seconds'.format((end_time - start_time)))
         layerNames = net.getLayerNames()
         lastLayerId = net.getLayerId(layerNames[-1])
         lastLayer = net.getLayer(lastLayerId)
@@ -93,6 +93,24 @@ def run_object_detection(image_base_path, should_detect):
                     classIds.append(classId)
                     confidences.append(float(confidence))
                     boxes.append([left, top, width, height])
+
+            #     # Optimistic approach: only take the first bird result if any
+            #     # Only append results if they are more confident and are for birds
+            #     if confidence > confThreshold and classId == BIRD_CLASS_LABEL_INDEX:
+            #         max_confidence = confidence
+            #         center_x = int(detection[0] * frameWidth)
+            #         center_y = int(detection[1] * frameHeight)
+            #         width = int(detection[2] * frameWidth)
+            #         height = int(detection[3] * frameHeight)
+            #         left = int(center_x - width / 2)
+            #         top = int(center_y - height / 2)
+            #         classIds.append(classId)
+            #         confidences.append(float(confidence))
+            #         boxes.append([left, top, width, height])
+            #         break
+            # if max_confidence != 0.0:
+            #     break
+
         if max_confidence == 0.0:
             print("No objects found")
             if should_detect:
@@ -127,8 +145,8 @@ def run_object_detection(image_base_path, should_detect):
 
 
 if __name__ == '__main__':
-    # run_object_detection(image_base_path_bird, True)
-    run_object_detection(image_base_path_no_bird, False)
+    run_object_detection(image_base_path_bird, True)
+    # run_object_detection(image_base_path_no_bird, False)
 
     # Results:
     # ~80% True Positive | ~20% False Negative

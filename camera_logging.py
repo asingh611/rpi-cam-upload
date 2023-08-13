@@ -1,4 +1,5 @@
 from datetime import datetime
+from camera_constants import *
 
 EVENT_CAMERA_STARTED = "Camera Started"
 EVENT_CAMERA_STOPPED = "Camera Stopped"
@@ -8,9 +9,6 @@ EVENT_BLOBSERVICE_STARTED = "Connected to Azure Blob Service"
 EVENT_IMAGE_WRITTEN_LOCAL = "Image Saved Locally"
 EVENT_IMAGE_WRITTEN_CLOUD = "Image Saved To Cloud"
 EVENT_IMAGE_WRITE_SKIP = "Skipping image write"
-
-LOG_FILE_NAME = "camera_events.log"  # Local file name for log file
-LOG_CONSOLE, LOG_FILE, LOG_AZURE = (True, True, False)  # Where to write logs to
 
 
 # Method to generate the output for an event that would be written locally

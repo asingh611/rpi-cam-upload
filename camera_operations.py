@@ -2,13 +2,7 @@ from picamera2 import Picamera2
 import time
 import cv2
 import camera_logging
-
-MAIN_RESOLUTION = (640, 480)  # Resolution for image captured
-LORES_RESOLUTION = (160, 120)  # Resolution for preview window
-
-# Range of pixels in the image to focus on for motion detection (area of the image where the bird seeds are)
-# These values are constant as long as the camera isn't moved
-x_1, x_2, y_1, y_2 = (50, 110, 15, 150)
+from camera_constants import *
 
 
 # Start the Raspberry Pi camera
