@@ -1,3 +1,4 @@
+import time
 import uuid
 from datetime import datetime, timedelta
 import camera_logging
@@ -27,6 +28,15 @@ if __name__ == '__main__':
             # Start the camera for the first time
             if picam2 is None:
                 picam2 = camera_operations.start_camera()
+
+            # Check the time to see if it's within the hours it should be running
+            # If it's past the camera's bedtime, sleep until the start time
+            is_bedtime, restart_time = camera_operations.check_bedtime(datetime.now())
+            if is_bedtime:
+                camera_operations.go_to_sleep(datetime.now(), restart_time)
+                # Reset previous frames array
+                previous_frames = None
+                frames_captured = 0
 
             # Initialize the array of N previous frames if needed
             if previous_frames is None:

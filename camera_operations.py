@@ -1,5 +1,6 @@
 from picamera2 import Picamera2
 import time
+from datetime import datetime, timedelta
 import cv2
 import camera_logging
 from camera_constants import *
@@ -40,3 +41,26 @@ def capture_current_image_multistream(picam2_obj):
                FOCUS_REGION_COL_START:FOCUS_REGION_COL_END]
     # camera_logging.output_log(camera_logging.EVENT_IMAGE_CAPTURED)
     return img_main, img_lores, img_gray
+
+
+# Function to check if it is currently outside the camera's operating hours
+def check_bedtime(current_time):
+    # If it's too late in the day
+    if current_time.hour > END_HOUR:
+        restart_time = (current_time + timedelta(days=1)).replace(hour=START_HOUR, minute=0)
+    # If it's too early in the morning
+    elif current_time.hour < START_HOUR:
+        restart_time = current_time.replace(hour=START_HOUR, minute=0)
+    # Otherwise we're good to proceed
+    else:
+        return False, None
+
+    return True, restart_time
+
+
+# Operations to perform when the camera goes to sleep
+def go_to_sleep(current_time, restart_time):
+    sleep_for = (restart_time - current_time).seconds
+    camera_logging.output_log(camera_logging.EVENT_CAMERA_SLEEP)
+    time.sleep(sleep_for)
+    camera_logging.output_log(camera_logging.EVENT_CAMERA_WAKE)

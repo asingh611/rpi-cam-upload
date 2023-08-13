@@ -9,6 +9,8 @@ EVENT_BLOBSERVICE_STARTED = "Connected to Azure Blob Service"
 EVENT_IMAGE_WRITTEN_LOCAL = "Image Saved Locally"
 EVENT_IMAGE_WRITTEN_CLOUD = "Image Saved To Cloud"
 EVENT_IMAGE_WRITE_SKIP = "Skipping image write"
+EVENT_CAMERA_SLEEP = "Camera Pausing - Going To Sleep"
+EVENT_CAMERA_WAKE = "Camera Restarting - Waking from Sleep"
 
 
 # Method to generate the output for an event that would be written locally
