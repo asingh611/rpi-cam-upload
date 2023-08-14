@@ -1,6 +1,6 @@
 from picamera2 import Picamera2
+import libcamera
 import time
-from datetime import datetime, timedelta
 import cv2
 import camera_logging
 from camera_constants import *
@@ -17,6 +17,7 @@ def start_camera():
                                                           display="lores")
     else:
         camera_config = picam2_start.create_still_configuration(main={"size": MAIN_RESOLUTION})
+    camera_config["transform"] = libcamera.Transform(hflip=1, vflip=1)
     picam2_start.configure(camera_config)
     picam2_start.start()
     time.sleep(1)
@@ -28,7 +29,7 @@ def start_camera():
 def capture_current_image(picam2_obj):
     img_main = picam2_obj.capture_array()
     img_gray = cv2.cvtColor(img_main, cv2.COLOR_BGR2GRAY)
-    img_gray_resized = cv2.resize(img_main, LORES_RESOLUTION)[FOCUS_REGION_ROW_START:FOCUS_REGION_ROW_END,
+    img_gray_resized = cv2.resize(img_gray, LORES_RESOLUTION)[FOCUS_REGION_ROW_START:FOCUS_REGION_ROW_END,
                FOCUS_REGION_COL_START:FOCUS_REGION_COL_END]
     # camera_logging.output_log(camera_logging.EVENT_IMAGE_CAPTURED)
     return img_main, img_gray_resized, img_gray_resized
@@ -41,26 +42,3 @@ def capture_current_image_multistream(picam2_obj):
                FOCUS_REGION_COL_START:FOCUS_REGION_COL_END]
     # camera_logging.output_log(camera_logging.EVENT_IMAGE_CAPTURED)
     return img_main, img_lores, img_gray
-
-
-# Function to check if it is currently outside the camera's operating hours
-def check_bedtime(current_time):
-    # If it's too late in the day
-    if current_time.hour > END_HOUR:
-        restart_time = (current_time + timedelta(days=1)).replace(hour=START_HOUR, minute=0)
-    # If it's too early in the morning
-    elif current_time.hour < START_HOUR:
-        restart_time = current_time.replace(hour=START_HOUR, minute=0)
-    # Otherwise we're good to proceed
-    else:
-        return False, None
-
-    return True, restart_time
-
-
-# Operations to perform when the camera goes to sleep
-def go_to_sleep(current_time, restart_time):
-    sleep_for = (restart_time - current_time).seconds
-    camera_logging.output_log(camera_logging.EVENT_CAMERA_SLEEP)
-    time.sleep(sleep_for)
-    camera_logging.output_log(camera_logging.EVENT_CAMERA_WAKE)
