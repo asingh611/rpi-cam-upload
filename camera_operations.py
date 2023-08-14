@@ -29,7 +29,7 @@ def start_camera():
 def capture_current_image(picam2_obj):
     img_main = picam2_obj.capture_array()
     img_gray = cv2.cvtColor(img_main, cv2.COLOR_BGR2GRAY)
-    img_gray_resized = cv2.resize(img_main, LORES_RESOLUTION)[FOCUS_REGION_ROW_START:FOCUS_REGION_ROW_END,
+    img_gray_resized = cv2.resize(img_gray, LORES_RESOLUTION)[FOCUS_REGION_ROW_START:FOCUS_REGION_ROW_END,
                FOCUS_REGION_COL_START:FOCUS_REGION_COL_END]
     # camera_logging.output_log(camera_logging.EVENT_IMAGE_CAPTURED)
     return img_main, img_gray_resized, img_gray_resized
