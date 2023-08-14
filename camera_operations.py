@@ -1,4 +1,5 @@
 from picamera2 import Picamera2
+import libcamera
 import time
 import cv2
 import camera_logging
@@ -16,6 +17,7 @@ def start_camera():
                                                           display="lores")
     else:
         camera_config = picam2_start.create_still_configuration(main={"size": MAIN_RESOLUTION})
+    camera_config["transform"] = libcamera.Transform(hflip=1, vflip=1)
     picam2_start.configure(camera_config)
     picam2_start.start()
     time.sleep(1)
