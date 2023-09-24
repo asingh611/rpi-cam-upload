@@ -5,6 +5,7 @@ import os
 import io
 import cv2
 import camera_logging
+import camera_objdetect
 from camera_constants import *
 
 
@@ -62,3 +63,9 @@ def create_local_write_folder():
         os.mkdir(difference_path)
     if not os.path.exists(lores_path):
         os.mkdir(lores_path)
+
+
+# Method for handling image writing
+# To be used in thread
+def write_image():
+    return True

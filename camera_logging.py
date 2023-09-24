@@ -11,6 +11,8 @@ EVENT_IMAGE_WRITTEN_CLOUD = "Image Saved To Cloud"
 EVENT_IMAGE_WRITE_SKIP = "Skipping image write"
 EVENT_CAMERA_SLEEP = "Camera Pausing - Going To Sleep"
 EVENT_CAMERA_WAKE = "Camera Restarting - Waking from Sleep"
+EVENT_OBJECT_DETECTED = "Object Detected"
+EVENT_OBJECT_NOT_DETECTED = "Object Not Detected"
 
 
 # Method to generate the output for an event that would be written locally
