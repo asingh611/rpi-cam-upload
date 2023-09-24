@@ -6,6 +6,7 @@ import camera_operations
 import camera_motion
 import image_write
 from camera_constants import *
+import camera_objdetect
 import threading
 import os
 
@@ -54,11 +55,22 @@ if __name__ == '__main__':
             motion_detected, difference, current_motion_time = camera_motion.detect_motion(previous_frames, gray,
                                                                                            DIFFERENCE_THRESHOLD,
                                                                                            MOTION_THRESHOLD)
+
+            # Update the oldest frame in previous_frames with the latest image
+            index_to_update = frames_captured % N
+            previous_frames[:, :, index_to_update] = gray
+
             if motion_detected:
                 # Calculate if it has been enough time since the last time motion was detected
                 # This is to prevent multiple images of the same bird being captured
                 if camera_motion.enough_time_since_motion(last_motion_time, current_motion_time, TIME_BETWEEN_MOTION):
                     last_motion_time = current_motion_time
+                    # Use object detection if enabled
+                    if USE_OBJECT_DETECTION:
+                        # Run object detection on captured frame
+                        # Start next loop iteration if no bird detected
+                        if not camera_objdetect.bird_detected(main):
+                            continue
                     # Write image file
                     if WRITE_TO_AZURE:
                         image_write.write_image_to_azure(container_client, picam2, blob_filename)
@@ -66,15 +78,12 @@ if __name__ == '__main__':
                         image_write.write_image_locally(picam2, blob_filename, difference, main, lores,
                                                         CAPTURE_NEW_IMAGE_ON_WRITE, LOCAL_OUTPUT_DEBUG_IMAGES)
 
-                    # Generate new file name
-                    blob_filename = str(uuid.uuid4())
+                        # Generate new file name
+                        blob_filename = str(uuid.uuid4())
 
                 else:
                     camera_logging.output_log(camera_logging.EVENT_IMAGE_WRITE_SKIP)
 
-            # Finally, update the oldest frame in previous_frames with the latest image
-            index_to_update = frames_captured % N
-            previous_frames[:, :, index_to_update] = gray
-
     except Exception as e:
         print(e)
+

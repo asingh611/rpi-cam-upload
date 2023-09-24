@@ -3,6 +3,7 @@ import numpy as np
 import os
 import time
 from camera_constants import *
+import camera_logging
 
 # This is the label position for "bird" in the class name text file
 BIRD_CLASS_LABEL_INDEX = 14
@@ -52,5 +53,7 @@ def bird_detected(input_image):
             confidence = scores[class_id]
             # Optimistic approach: only take the first bird result if any
             if confidence > MODEL_CONFIDENCE_THRESHOLD and class_id == BIRD_CLASS_LABEL_INDEX:
+                camera_logging.output_log(camera_logging.EVENT_OBJECT_DETECTED)
                 return True
+    camera_logging.output_log(camera_logging.EVENT_OBJECT_NOT_DETECTED)
     return False
