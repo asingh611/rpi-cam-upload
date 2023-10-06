@@ -53,14 +53,13 @@ def bird_detected(input_image, picam2_obj, vision_client):
 
 # Method for running object detection on Azure
 def bird_detected_azure(picam2_obj, vision_client):
-    # Capture image to memory
-    data = io.BytesIO()
-    picam2_obj.capture_file(data, format='jpeg')
-    tags_result_local = vision_client.tag_image_in_stream(data)
-    for tag in tags_result_local.tags:
-        if tag.name == "bird":
-            camera_logging.output_log(camera_logging.EVENT_OBJECT_DETECTED)
-            return True
+    picam2_obj.capture_file("bird_detection.jpg")
+    with open("bird_detection.jpg", "rb") as image_stream:
+        tags_result_local = vision_client.tag_image_in_stream(image_stream)
+        for tag in tags_result_local.tags:
+            if tag.name == "bird":
+                camera_logging.output_log(camera_logging.EVENT_OBJECT_DETECTED)
+                return True
     camera_logging.output_log(camera_logging.EVENT_OBJECT_NOT_DETECTED)
     return False
 
