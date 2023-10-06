@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 import os
 import time
+import io
 from camera_constants import *
 import camera_logging
 from dotenv import load_dotenv
@@ -40,19 +41,22 @@ def initialize_azure_connection():
 
 
 # Wrapper method for calling object detection
-def bird_detected(input_image, vision_client):
+def bird_detected(input_image, picam2_obj, vision_client):
     if USE_LOCAL_OBJECT_DETECTION:
         return bird_detected_local(input_image)
     elif USE_AZURE_OBJECT_DETECTION:
-        return bird_detected_azure(input_image, vision_client)
+        return bird_detected_azure(picam2_obj, vision_client)
     else:
         print("No object detection enabled")
         return False
 
 
 # Method for running object detection on Azure
-def bird_detected_azure(input_image, vision_client):
-    tags_result_local = vision_client.tag_image_in_stream(input_image)
+def bird_detected_azure(picam2_obj, vision_client):
+    # Capture image to memory
+    data = io.BytesIO()
+    picam2_obj.capture_file(data, format='jpeg')
+    tags_result_local = vision_client.tag_image_in_stream(data)
     for tag in tags_result_local.tags:
         if tag.name == "bird":
             camera_logging.output_log(camera_logging.EVENT_OBJECT_DETECTED)

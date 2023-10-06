@@ -78,7 +78,7 @@ if __name__ == '__main__':
                     if USE_OBJECT_DETECTION:
                         # Run object detection on captured frame
                         # Start next loop iteration if no bird detected
-                        if not camera_objdetect.bird_detected(main, vision_client):
+                        if not camera_objdetect.bird_detected(main, picam2, vision_client):
                             continue
 
                     # Write image file
