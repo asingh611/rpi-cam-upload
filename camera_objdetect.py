@@ -32,7 +32,7 @@ if USE_LOCAL_OBJECT_DETECTION:
 # Method for setting up connection to Azure
 def initialize_azure_connection():
     # Load environment variables
-    load_dotenv("../.env")
+    load_dotenv(".env")
     vision_key = os.environ.get("AZURE_VISION_KEY")
     vision_endpoint = os.environ.get("AZURE_VISION_ENDPOINT")
 

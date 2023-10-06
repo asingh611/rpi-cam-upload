@@ -70,15 +70,16 @@ if __name__ == '__main__':
                 # Calculate if it has been enough time since the last time motion was detected
                 # This is to prevent multiple images of the same bird being captured
                 if camera_motion.enough_time_since_motion(last_motion_time, current_motion_time, TIME_BETWEEN_MOTION):
+
+                    # Reset motion last detected time
+                    last_motion_time = current_motion_time
+
                     # Use object detection if enabled
                     if USE_OBJECT_DETECTION:
                         # Run object detection on captured frame
                         # Start next loop iteration if no bird detected
                         if not camera_objdetect.bird_detected(main, vision_client):
                             continue
-
-                    # Reset motion last detected time
-                    last_motion_time = current_motion_time
 
                     # Write image file
                     if WRITE_TO_AZURE:
