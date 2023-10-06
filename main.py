@@ -12,15 +12,21 @@ import os
 
 if __name__ == '__main__':
     try:
+        container_client = None
+        vision_client = None
+
         # Initialize connection for blob storage
         if WRITE_TO_AZURE:
             container_client = image_write.initialize_azure_connection()
+
+        # Initialize connection for cognitive services
+        if USE_AZURE_OBJECT_DETECTION:
+            vision_client = camera_objdetect.initialize_azure_connection()
 
         # Ensure folders for writing images locally are available
         if WRITE_IMAGE_LOCALLY:
             image_write.create_local_write_folder()
 
-        # Initialize some values
         picam2 = None
         previous_frames = None  # Holds numpy array of previous frames
         frames_captured = 0  # Keeps track of the total number of frame
@@ -64,13 +70,16 @@ if __name__ == '__main__':
                 # Calculate if it has been enough time since the last time motion was detected
                 # This is to prevent multiple images of the same bird being captured
                 if camera_motion.enough_time_since_motion(last_motion_time, current_motion_time, TIME_BETWEEN_MOTION):
-                    last_motion_time = current_motion_time
                     # Use object detection if enabled
                     if USE_OBJECT_DETECTION:
                         # Run object detection on captured frame
                         # Start next loop iteration if no bird detected
-                        if not camera_objdetect.bird_detected(main):
+                        if not camera_objdetect.bird_detected(main, vision_client):
                             continue
+
+                    # Reset motion last detected time
+                    last_motion_time = current_motion_time
+
                     # Write image file
                     if WRITE_TO_AZURE:
                         image_write.write_image_to_azure(container_client, picam2, blob_filename)

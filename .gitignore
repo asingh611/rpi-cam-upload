@@ -165,3 +165,4 @@ sample_input_videos/*
 opencv_yolo/
 camera_events.log
 camera_constants.py
+model/

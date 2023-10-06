@@ -33,7 +33,10 @@ TIME_BETWEEN_MOTION = 30  # Number of seconds to wait before trying to detect mo
 ##########################
 # Detection Model Options
 ##########################
-USE_OBJECT_DETECTION = True
+USE_OBJECT_DETECTION = True  # Enables object detection
+USE_LOCAL_OBJECT_DETECTION = False  # Determines if object detection should run locally on Raspberry Pi
+USE_AZURE_OBJECT_DETECTION = True  # Determines if object detection should be run using Azure Cognitive Services
+# Options related to local object detection
 MODEL_FOLDER = "model"
 MODEL_CONFIGURATION_FILENAME = "yolov3.cfg"
 MODEL_WEIGHTS_FILENAME = "yolov3.weights"
