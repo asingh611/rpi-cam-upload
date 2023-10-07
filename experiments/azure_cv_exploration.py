@@ -15,17 +15,12 @@ vision_endpoint = os.environ.get("AZURE_VISION_ENDPOINT")
 vision_client = ComputerVisionClient(vision_endpoint, CognitiveServicesCredentials(vision_key))
 
 image_base_path = os.path.join('../local_output', 'bird')
-image_path = os.path.join(image_base_path, "0fd96662-859a-4833-a239-ec005c4277ea.jpg")
+image_path = os.path.join(image_base_path, "bae3cd4e-e677-4855-b03a-10017b92e197.jpg")
 
 local_image = open(image_path, "rb")
 # Call API local image
 tags_result_local = vision_client.tag_image_in_stream(local_image)
 
-# Print results with confidence score
-print("Tags in the local image: ")
-if len(tags_result_local.tags) == 0:
-    print("No tags detected.")
-else:
-    for tag in tags_result_local.tags:
-        print("'{}' with confidence {:.2f}%".format(tag.name, tag.confidence * 100))
-print()
+for tag in tags_result_local.tags:
+    if tag.name == "bird":
+        print("Bird!")

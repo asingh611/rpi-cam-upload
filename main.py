@@ -79,6 +79,10 @@ if __name__ == '__main__':
                         # Run object detection on captured frame
                         # Start next loop iteration if no bird detected
                         if not camera_objdetect.bird_detected(main, picam2, vision_client):
+                            # Output local image if debug is enabled
+                            if LOCAL_OUTPUT_DEBUG_IMAGES:
+                                image_write.write_image_locally(picam2, blob_filename, difference, main, lores,
+                                                                CAPTURE_NEW_IMAGE_ON_WRITE, LOCAL_OUTPUT_DEBUG_IMAGES)
                             continue
 
                     # Write image file
