@@ -27,10 +27,13 @@ def initialize_azure_connection():
 
 
 # Method to handle writing to Azure
-def write_image_to_azure(azure_container_client, picam2_obj, filename):
-    # Capture image to memory
-    data = io.BytesIO()
-    picam2_obj.capture_file(data, format='jpeg')
+def write_image_to_azure(azure_container_client, picam2_obj, filename, main):
+    if CAPTURE_NEW_IMAGE_ON_WRITE:
+        # Capture image to memory
+        data = io.BytesIO()
+        picam2_obj.capture_file(data, format='jpeg')
+    else:
+        data = main
     # Write to blob storage
     blob_client = azure_container_client.upload_blob(name=filename + '.jpg', data=data.getvalue())
     camera_logging.output_log(camera_logging.EVENT_IMAGE_WRITTEN_CLOUD, ["Filename: " + filename])
@@ -44,12 +47,21 @@ def write_image_locally(picam2_obj, filename, difference_img, main_img, lores_im
         cv2.imwrite(os.path.join(LOCAL_OUTPUT_FOLDER, LOCAL_OUTPUT_SUBFOLDER, filename + '.jpg'), main_img)
 
     if debug:
-        difference_normalize = cv2.normalize(difference_img, dst=None,
-                                             alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)
-        cv2.imwrite(os.path.join(LOCAL_OUTPUT_FOLDER, LOCAL_OUTPUT_SUBFOLDER, "difference", filename + '.png'),
-                    difference_normalize)
-        cv2.imwrite(os.path.join(LOCAL_OUTPUT_FOLDER, LOCAL_OUTPUT_SUBFOLDER, "lores", filename + '.png'), lores_img)
+        write_debug_images_locally(main_img, difference_img, lores_img, filename, False)
+
     camera_logging.output_log(camera_logging.EVENT_IMAGE_WRITTEN_LOCAL, ["Filename: " + filename])
+
+
+# Method to output debug images locally
+def write_debug_images_locally(main_img, difference_img, lores_img, filename, detection_debug):
+    difference_normalize = cv2.normalize(difference_img, dst=None,
+                                         alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)
+    cv2.imwrite(os.path.join(LOCAL_OUTPUT_FOLDER, LOCAL_OUTPUT_SUBFOLDER, "difference", filename + '.png'),
+                difference_normalize)
+    cv2.imwrite(os.path.join(LOCAL_OUTPUT_FOLDER, LOCAL_OUTPUT_SUBFOLDER, "lores", filename + '.png'), lores_img)
+    if detection_debug:
+        cv2.imwrite(os.path.join(LOCAL_OUTPUT_FOLDER, LOCAL_OUTPUT_SUBFOLDER, "nodetection", filename + '.png'),
+                    main_img)
 
 
 # Method for creating folder directories for local image write if they don't
@@ -57,12 +69,15 @@ def create_local_write_folder():
     date_folder_path = os.path.join(LOCAL_OUTPUT_FOLDER, LOCAL_OUTPUT_SUBFOLDER)
     difference_path = os.path.join(LOCAL_OUTPUT_FOLDER, LOCAL_OUTPUT_SUBFOLDER, "difference")
     lores_path = os.path.join(LOCAL_OUTPUT_FOLDER, LOCAL_OUTPUT_SUBFOLDER, "lores")
+    nodetection_path = os.path.join(LOCAL_OUTPUT_FOLDER, LOCAL_OUTPUT_SUBFOLDER, "nodetection")
     if not os.path.exists(date_folder_path):
         os.mkdir(date_folder_path)
     if not os.path.exists(difference_path):
         os.mkdir(difference_path)
     if not os.path.exists(lores_path):
         os.mkdir(lores_path)
+    if not os.path.exists(nodetection_path):
+        os.mkdir(nodetection_path)
 
 
 # Method for handling image writing

@@ -45,15 +45,18 @@ def bird_detected(input_image, picam2_obj, vision_client):
     if USE_LOCAL_OBJECT_DETECTION:
         return bird_detected_local(input_image)
     elif USE_AZURE_OBJECT_DETECTION:
-        return bird_detected_azure(picam2_obj, vision_client)
+        return bird_detected_azure(input_image, picam2_obj, vision_client)
     else:
         print("No object detection enabled")
         return False
 
 
 # Method for running object detection on Azure
-def bird_detected_azure(picam2_obj, vision_client):
-    picam2_obj.capture_file("bird_detection.jpg")
+def bird_detected_azure(input_image, picam2_obj, vision_client):
+    if CAPTURE_NEW_IMAGE_ON_WRITE:
+        picam2_obj.capture_file("bird_detection.jpg")
+    else:
+        cv2.imwrite('bird_detection.jpg', input_image)
     with open("bird_detection.jpg", "rb") as image_stream:
         tags_result_local = vision_client.tag_image_in_stream(image_stream)
         for tag in tags_result_local.tags:

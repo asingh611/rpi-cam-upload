@@ -11,8 +11,10 @@ EVENT_IMAGE_WRITTEN_CLOUD = "Image Saved To Cloud"
 EVENT_IMAGE_WRITE_SKIP = "Skipping image write"
 EVENT_CAMERA_SLEEP = "Camera Pausing - Going To Sleep"
 EVENT_CAMERA_WAKE = "Camera Restarting - Waking from Sleep"
+EVENT_AZURE_CV_CONNECTED = "Connected to Azure CV Service"
 EVENT_OBJECT_DETECTED = "Object Detected"
 EVENT_OBJECT_NOT_DETECTED = "Object Not Detected"
+EVENT_AZURE_LOGGING_STARTED = "Connected to Azure Log Ingestion"
 
 
 # Method to generate the output for an event that would be written locally

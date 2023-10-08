@@ -81,13 +81,14 @@ if __name__ == '__main__':
                         if not camera_objdetect.bird_detected(main, picam2, vision_client):
                             # Output local image if debug is enabled
                             if LOCAL_OUTPUT_DEBUG_IMAGES:
-                                image_write.write_image_locally(picam2, blob_filename, difference, main, lores,
-                                                                CAPTURE_NEW_IMAGE_ON_WRITE, LOCAL_OUTPUT_DEBUG_IMAGES)
+                                image_write.write_debug_images_locally(main, difference, lores, blob_filename, True)
+                            # Generate new file name
+                            blob_filename = str(uuid.uuid4())
                             continue
 
                     # Write image file
                     if WRITE_TO_AZURE:
-                        image_write.write_image_to_azure(container_client, picam2, blob_filename)
+                        image_write.write_image_to_azure(container_client, picam2, main, blob_filename)
                     if WRITE_IMAGE_LOCALLY:
                         image_write.write_image_locally(picam2, blob_filename, difference, main, lores,
                                                         CAPTURE_NEW_IMAGE_ON_WRITE, LOCAL_OUTPUT_DEBUG_IMAGES)
