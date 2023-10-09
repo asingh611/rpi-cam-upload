@@ -61,7 +61,7 @@ def bird_detected_azure(input_image, picam2_obj, vision_client):
         tags_result_local = vision_client.tag_image_in_stream(image_stream)
         for tag in tags_result_local.tags:
             if tag.name == "bird":
-                camera_logging.output_log(camera_logging.EVENT_OBJECT_DETECTED)
+                camera_logging.output_log(camera_logging.EVENT_OBJECT_DETECTED, ["Confidence: " + tag.confidence])
                 return True
     camera_logging.output_log(camera_logging.EVENT_OBJECT_NOT_DETECTED)
     return False
